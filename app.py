@@ -5,6 +5,13 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import requests
 from datetime import datetime
 
+<<<<<<< Updated upstream
+=======
+# Load the trained ML models
+solar_model = pickle.load(open("D:\ML Folders\ml_env\GitHub\Hack-it-out\Hack-It-Out\models\solar_model.pkl", "rb"))
+wind_model = pickle.load(open("models/wind_model.pkl", "rb"))
+
+>>>>>>> Stashed changes
 app = Flask(__name__)
 
 # Configure MySQL Database (Replace with your actual XAMPP MySQL credentials)
@@ -123,9 +130,65 @@ def forecast_energy():
 
     return jsonify(prediction)
 
+<<<<<<< Updated upstream
 # =========================== DASHBOARD ROUTE =========================== #
 @app.route("/dashboard")
 @login_required
+=======
+        for data in weather_data:
+            try:
+                date = data["date"]
+                temperature = data.get("temperature")
+                max_temperature = data.get("max_temperature")
+                sunlight_intensity = data.get("sunlight_intensity")
+                wind_speed = data.get("wind_speed")
+                wind_direction = data.get("wind_direction")
+
+                hour = date.hour
+                day = date.day
+                month = date.month
+
+                if None in [temperature, max_temperature, sunlight_intensity, wind_speed, wind_direction]:
+                    print(f"Skipping invalid data: {data}")
+                    continue  # Skip invalid rows
+
+                # Make Predictions
+                solar_pred = solar_model.predict([[temperature, max_temperature, sunlight_intensity]])[0]
+                wind_pred = wind_model.predict([[wind_speed, wind_direction, hour, day, month]])[0]
+                print(f"Predicted Wind: {wind_pred}")
+
+                # Store Predictions
+                solar_entries.append(SolarForecast(
+                    user_id=current_user.id, date=date, temperature=temperature,
+                    max_temperature=max_temperature, sunlight_intensity=sunlight_intensity,
+                    predicted_solar_energy=solar_pred
+                ))
+
+                wind_entries.append(WindForecast(
+                    user_id=current_user.id, date=date, wind_speed=wind_speed,
+                    wind_direction=wind_direction, predicted_wind_energy=wind_pred
+                ))
+
+            except Exception as e:
+                print("Error processing weather entry:", e)
+
+        # Bulk insert into the database
+        if solar_entries:
+            db.session.bulk_save_objects(solar_entries)
+        if wind_entries:
+            db.session.bulk_save_objects(wind_entries)
+        
+        db.session.commit()
+        return jsonify({"message": "Predictions stored successfully"})
+
+    except Exception as e:
+        db.session.rollback()
+        print("Prediction API Error:", str(e))  # Log error
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/dashboard')
+>>>>>>> Stashed changes
 def dashboard():
     return render_template("dashboard.html")
 
